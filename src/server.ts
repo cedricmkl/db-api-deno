@@ -25,7 +25,9 @@ const router = new WorkerRouter()
             includeRoute: searchParams.get("includeRoute") == "true",
         })
         return ok(JSON.stringify(result))
-    }).recover("*", (_, ctx) => {
+    })
+    .any("*", () => notFound())
+    .recover("*", (_, ctx) => {
         if (ctx.error instanceof UserError) return badRequest(ctx.error.message)
         console.error(ctx.error)
         return internalServerError()
