@@ -44,6 +44,10 @@ const parser = args
         alias: ["r"],
         describe: "Show route",
       }))
+      .with(Flag("messages", {
+        alias: ["msg"],
+        describe: "Show messages",
+      }))
       .with(Flag("raw", {
         describe: "Show raw result",
       }))
@@ -68,7 +72,6 @@ const parser = args
   );
 
 const res = parser.parse(Deno.args);
-
 switch (res.tag) {
   case "station": {
     const { query, raw } = res.value.value;
@@ -76,11 +79,12 @@ switch (res.tag) {
     break;
   }
   case "timetable": {
-    const { eva, route, raw, lookbehind, lookahead, max } = res.value.value;
+    const { eva, route, raw, lookbehind, lookahead, max, messages} = res.value.value;
     await timetable(
       Number(eva),
       route,
       raw,
+      messages,
       Number(lookbehind),
       Number(lookahead),
       Number(max),

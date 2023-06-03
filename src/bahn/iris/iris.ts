@@ -15,8 +15,8 @@ import {
   TrainClass,
 } from "./types.ts";
 import { UserError } from "../../util/error.ts";
+import { messages } from "./messages.ts";
 
-//TODO: messages, subsitution trains
 const IRIS_BASE_URL = "https://iris.noncd.db.de";
 
 export async function irisTimetable(
@@ -339,9 +339,20 @@ function parseMessage(message: XMLNode): IrisMessage {
   return {
     id: attr(message, "id")!,
     type: attr(message, "t")!,
-    value: attr(message, "c"),
+    value: parseInt(attr(message, "c")!),
+    text: getMessageByValue(parseInt(attr(message, "c")!)),  
     category: attr(message, "cat") || null,
     priority: attr(message, "p") ? parseInt(attr(message, "p")!) : null,
     timeSent: parseDateYYMMDDHHmm(attr(message, "ts")),
   };
+}
+
+export function getMessageByValue(value: number): string | null{
+  if(value === 0 || isNaN(value)) return null
+  //@ts-ignore
+  return messages[value]
+}
+
+export function combineMessages(stopMessages: IrisMessage[], arrivalMessages: IrisMessage[], departureMessages: IrisMessage[]): IrisMessage[] {
+  return [...new Map([...stopMessages, ...arrivalMessages, ...departureMessages].map(item => [item["text"], item])).values()];
 }

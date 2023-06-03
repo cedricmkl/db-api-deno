@@ -65,7 +65,8 @@ export type IrisStopChanges = {
 export type IrisMessage = {
   id: string;
   type: string;
-  value: string | null;
+  value: number;
+  text: string | null;
   category: string | null;
   priority: number | null;
   timeSent: Date | null;

@@ -1,12 +1,13 @@
 import { format } from "https://deno.land/std@0.125.0/datetime/mod.ts";
 import * as color from "https://deno.land/x/coolors@v1.0.0/mod.js";
-import { iris } from "../../bahn/iris/iris.ts";
+import { combineMessages, iris } from "../../bahn/iris/iris.ts";
 import { IrisStop } from "../../bahn/iris/types.ts";
 
 export async function timetable(
   eva: number,
   showRoute: boolean,
-  raw: boolean,
+  showRaw: boolean,
+  showMessages: boolean,
   lookbehind: number,
   lookahead: number,
   max: number,
@@ -15,11 +16,12 @@ export async function timetable(
     startDate: new Date(Date.now() - (lookbehind * 1000)),
     endDate: new Date(Date.now() + (lookahead * 1000)),
     includeRoute: showRoute,
+    includeMessages: showMessages
   });
 
   const stops = timetable.stops.slice(0, max);
 
-  if (raw) {
+  if (showRaw) {
     console.log(JSON.stringify(stops, null, 2));
     return;
   }
@@ -31,7 +33,7 @@ export async function timetable(
   );
 
   console.log(
-    stops.map((stop) => formatStop(stop, showRoute, timetable.station.name))
+    stops.map((stop) => formatStop(stop, showRoute, showMessages, timetable.station.name))
       .join("\n\n"),
   );
 }
@@ -90,14 +92,24 @@ const formatRoute = (
   return route.join(" -> ");
 };
 
+const formatMessages = (stop: IrisStop) => {
+  const messages = combineMessages(stop.messages!, stop.arrival?.messages || [], stop.departure?.messages || [])
+  .filter(m => m.text !== null)
+  .map((m) => `  ${color.green(format(m.timeSent!, "HH:mm"))}: ${m.text}`)
+
+  if(messages.length > 0) return `\n\n${messages.join("\n")}`
+  return ""
+}
+
 const formatStop = (
   stop: IrisStop,
-  displayRoute: boolean,
+  showRoute: boolean,
+  showMessages: boolean,
   currentStation: string,
 ) => {
   let str = `${
     color.cyan(`${stop.train.type} ${stop.train.line ?? stop.train.number}`)
-  } (${color.green(stop.train.class ?? "")}) -> ${
+  } (${color.green(stop.train.class ?? "UNKNOWN")}) -> ${
     formatChangeable(stop.plannedDestination, stop.destination)
   } `;
 
@@ -112,6 +124,7 @@ const formatStop = (
       color.red("Cancelled"),
     );
   }
+
   if (stop.departure) {
     str += invalidIf(
       `\n  Departure: ${
@@ -121,10 +134,14 @@ const formatStop = (
       color.red("Cancelled"),
     );
   }
-  if (displayRoute && stop.plannedRoute) {
+
+  if (showRoute && stop.plannedRoute) {
     str += `\n  Route: ${
       formatRoute(stop.plannedRoute, stop.route!, currentStation)
     } `;
   }
+
+  if(showMessages) str += formatMessages(stop)
+  
   return str;
 };
