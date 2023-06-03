@@ -349,7 +349,7 @@ function parseMessage(message: XMLNode): IrisMessage {
 
 export function getMessageByValue(value: number): string | null{
   if(value === 0 || isNaN(value)) return null
-  //@ts-ignore
+  //@ts-ignore value could be something elses
   return messages[value]
 }
 
