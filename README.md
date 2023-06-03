@@ -7,7 +7,7 @@ the api in the `src/cli/` folder.
 CLI examples:
 ```shell
 # Install the cli
-deno install -A -n db https://raw.githubusercontent.com/cedricmkl/db-api-deno/master/src/cli/cli.ts
+deno install -A -n db https://raw.githubusercontent.com/cedricmkl/db-api-deno/main/src/cli/cli.ts
 
 # Get station data for "Berlin Hbf"
 db station -q "Berlin Hbf"
