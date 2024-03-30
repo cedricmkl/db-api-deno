@@ -22,34 +22,38 @@ const IRIS_BASE_URL = "https://iris.noncd.db.de";
 export async function irisTimetable(
   eva: number,
   date: Date,
-  options: IrisOptions,
+  options: IrisOptions
 ): Promise<IrisTimetable> {
-  const urlDate = `${moment(date).format("YYMMDD")}/${
-    parseInt(moment(date).format("HH"))
-  }`;
-  const response = await fetch(
-    `${IRIS_BASE_URL}/iris-tts/timetable/plan/${eva}/${urlDate}`,
-    {
-      cache: "force-cache",
-    },
-  );
+  const urlDate = `${moment(date).format("YYMMDD")}/${moment(date).format(
+    "HH"
+  )}`;
+
+  const url = `${IRIS_BASE_URL}/iris-tts/timetable/plan/${eva}/${urlDate}`;
+  console.log(url);
+
+  const response = await fetch(url, {
+    cache: "force-cache",
+  });
   return parseIrisTimetable(eva, await response.text(), options);
 }
 
 export async function irisFullChanges(
   eva: number,
-  options: IrisOptions,
+  options: IrisOptions
 ): Promise<Array<IrisStopChanges>> {
   const response = await fetch(
-    `${IRIS_BASE_URL}/iris-tts/timetable/fchg/${eva}`,
+    `${IRIS_BASE_URL}/iris-tts/timetable/fchg/${eva}`
   );
   return parseIrisChanges(await response.text(), options);
 }
 
 export async function iris(
   eva: number,
-  options: IrisOptions,
+  options: IrisOptions
 ): Promise<IrisResult> {
+  if (!options.startDate) {
+    options.startDate = new Date();
+  }
   if (!options.endDate) {
     options.endDate = new Date(options.startDate.getTime() + 2 * ONE_HOUR);
   }
@@ -78,15 +82,17 @@ export async function iris(
     stops: combineStops(
       timetables.map((v) => v.stops).flat(),
       changes,
-      timetables[0].station.name,
-    ).filter((s) =>
-      isWithhin(getStopTime(s), options.startDate, options.endDate!)
-    ).sort((a, b) => getStopTime(a).getTime() - getStopTime(b).getTime()),
+      timetables[0].station.name
+    )
+      .filter((s) =>
+        isWithhin(getStopTime(s), options.startDate, options.endDate!)
+      )
+      .sort((a, b) => getStopTime(a).getTime() - getStopTime(b).getTime()),
   };
 }
 
 export async function irisStation(
-  input: string,
+  input: string
 ): Promise<IrisStationDetilsResult | null> {
   return parseIrisStaion(await fetchIrisStation(input));
 }
@@ -96,13 +102,13 @@ async function fetchIrisStation(input: string): Promise<string> {
     `${IRIS_BASE_URL}/iris-tts/timetable/station/${input}`,
     {
       cache: "force-cache",
-    },
+    }
   );
   return await response.text();
 }
 
 async function parseIrisStaion(
-  string: string,
+  string: string
 ): Promise<IrisStationDetilsResult | null> {
   const stations = node(xml(string), "stations")!;
   if (node(stations, "station") == null) return null;
@@ -113,7 +119,7 @@ async function parseIrisStaion(
     for (const eva of attr(station, "meta")!.toString().split("|")) {
       const data = await fetchIrisStation(eva);
       meta.push(
-        parseSingleIrisStation(node(node(xml(data), "stations")!, "station")!),
+        parseSingleIrisStation(node(node(xml(data), "stations")!, "station")!)
       );
     }
   }
@@ -137,7 +143,7 @@ function parseSingleIrisStation(station: XMLNode): IrisStationDetails {
 function parseIrisTimetable(
   eva: number,
   string: string,
-  options: IrisOptions,
+  options: IrisOptions
 ): IrisTimetable {
   const timetable = node(xml(string), "timetable")!;
   const stationName = attr(timetable, "station")!;
@@ -149,22 +155,26 @@ function parseIrisTimetable(
     const departure = node(stop, "dp");
 
     const route: Array<string> = [];
-    attr(arrvial, "ppth")?.split("|").forEach((s) => route.push(s));
+    attr(arrvial, "ppth")
+      ?.split("|")
+      .forEach((s) => route.push(s));
     route.push(stationName);
-    attr(departure, "ppth")?.split("|").forEach((s) => route.push(s));
+    attr(departure, "ppth")
+      ?.split("|")
+      .forEach((s) => route.push(s));
 
     stops.push({
       id: attr(stop, "id")!,
       plannedPlatform: attr(arrvial, "pp") || attr(departure, "pp") || "",
       arrival: arrvial
         ? {
-          plannedTime: parseDateYYMMDDHHmm(attr(arrvial, "pt"))!,
-        }
+            plannedTime: parseDateYYMMDDHHmm(attr(arrvial, "pt"))!,
+          }
         : null,
       departure: departure
         ? {
-          plannedTime: parseDateYYMMDDHHmm(attr(departure, "pt"))!,
-        }
+            plannedTime: parseDateYYMMDDHHmm(attr(departure, "pt"))!,
+          }
         : null,
       train: {
         type: attr(train, "c")!,
@@ -187,7 +197,7 @@ function parseIrisTimetable(
 
 function parseIrisChanges(
   string: string,
-  options: IrisOptions,
+  options: IrisOptions
 ): Array<IrisStopChanges> {
   const timetable = node(xml(string), "timetable")!;
   const stationName = attr(timetable, "station")!;
@@ -198,11 +208,15 @@ function parseIrisChanges(
     const departure = node(stop, "dp");
 
     const route: Array<string> = [];
-    attr(arrival, "cpth")?.split("|").forEach((s) => route.push(s));
+    attr(arrival, "cpth")
+      ?.split("|")
+      .forEach((s) => route.push(s));
     if (attr(arrival, "cs") !== "c") {
       route.push(stationName);
     }
-    attr(departure, "cpth")?.split("|").forEach((s) => route.push(s));
+    attr(departure, "cpth")
+      ?.split("|")
+      .forEach((s) => route.push(s));
 
     stopChanges.push({
       id: attr(stop, "id")!,
@@ -213,23 +227,23 @@ function parseIrisChanges(
       destination: route.length > 1 ? route[route.length - 1] : null,
       arrival: arrival
         ? {
-          time: parseDateYYMMDDHHmm(attr(arrival, "ct")),
-          messages: options.includeMessages
-            ? children(arrival, "m").map(parseMessage)
-            : null,
-          cancelled: attr(arrival, "cs") === "c",
-          changedPath: attr(arrival, "cpth")?.split("|") || null,
-        }
+            time: parseDateYYMMDDHHmm(attr(arrival, "ct")),
+            messages: options.includeMessages
+              ? children(arrival, "m").map(parseMessage)
+              : null,
+            cancelled: attr(arrival, "cs") === "c",
+            changedPath: attr(arrival, "cpth")?.split("|") || null,
+          }
         : null,
       departure: departure
         ? {
-          time: parseDateYYMMDDHHmm(attr(departure, "ct")),
-          messages: options.includeMessages
-            ? children(departure, "m").map(parseMessage)
-            : null,
-          cancelled: attr(departure, "cs") === "c",
-          changedPath: attr(departure, "cpth")?.split("|") || null,
-        }
+            time: parseDateYYMMDDHHmm(attr(departure, "ct")),
+            messages: options.includeMessages
+              ? children(departure, "m").map(parseMessage)
+              : null,
+            cancelled: attr(departure, "cs") === "c",
+            changedPath: attr(departure, "cpth")?.split("|") || null,
+          }
         : null,
     });
   }
@@ -240,7 +254,7 @@ function parseIrisChanges(
 function combineStops(
   timetableStops: Array<IrisTimetableStop>,
   changes: Array<IrisStopChanges>,
-  currentStation: string,
+  currentStation: string
 ): Array<IrisStop> {
   const resultStops: Array<IrisStop> = [];
 
@@ -265,27 +279,25 @@ function combineStops(
       };
     }
 
-    resultStops.push(
-      {
-        id: stop.id,
-        train: stop.train,
-        plannedPlatform: stop.plannedPlatform,
-        platform: stopChanges?.platform || stop.plannedPlatform,
-        plannedDestination: stop.plannedDestination,
-        destination: stopChanges?.destination || stop.plannedDestination,
-        plannedRoute: stop.plannedRoute,
-        route: mergeRoute(
-          stop.plannedRoute,
-          stopChanges?.arrival?.changedPath || null,
-          stopChanges?.departure?.changedPath || null,
-          currentStation,
-          arrival?.cancelled || false,
-        ),
-        arrival,
-        departure,
-        messages: stopChanges?.messages || null,
-      },
-    );
+    resultStops.push({
+      id: stop.id,
+      train: stop.train,
+      plannedPlatform: stop.plannedPlatform,
+      platform: stopChanges?.platform || stop.plannedPlatform,
+      plannedDestination: stop.plannedDestination,
+      destination: stopChanges?.destination || stop.plannedDestination,
+      plannedRoute: stop.plannedRoute,
+      route: mergeRoute(
+        stop.plannedRoute,
+        stopChanges?.arrival?.changedPath || null,
+        stopChanges?.departure?.changedPath || null,
+        currentStation,
+        arrival?.cancelled || false
+      ),
+      arrival,
+      departure,
+      messages: stopChanges?.messages || null,
+    });
   }
   return resultStops;
 }
@@ -295,7 +307,7 @@ function mergeRoute(
   arrivalChangedRoute: string[] | null,
   departureChangedRoute: string[] | null,
   currentStation: string,
-  arrivalCancelled: boolean,
+  arrivalCancelled: boolean
 ): string[] | null {
   if (plannedRoute == null) return null;
   if (arrivalChangedRoute == null && departureChangedRoute == null) {
@@ -303,10 +315,10 @@ function mergeRoute(
   }
   const arrivalRoute = plannedRoute.splice(
     0,
-    plannedRoute.indexOf(currentStation) + 1,
+    plannedRoute.indexOf(currentStation) + 1
   );
   const departureRoute = plannedRoute.splice(
-    plannedRoute.indexOf(currentStation),
+    plannedRoute.indexOf(currentStation)
   );
   if (arrivalCancelled) {
     return arrivalChangedRoute;
@@ -340,19 +352,29 @@ function parseMessage(message: XMLNode): IrisMessage {
     id: attr(message, "id")!,
     type: attr(message, "t")!,
     value: parseInt(attr(message, "c")!),
-    text: getMessageByValue(parseInt(attr(message, "c")!)),  
+    text: getMessageByValue(parseInt(attr(message, "c")!)),
     category: attr(message, "cat") || null,
     priority: attr(message, "p") ? parseInt(attr(message, "p")!) : null,
     timeSent: parseDateYYMMDDHHmm(attr(message, "ts")),
   };
 }
 
-export function getMessageByValue(value: number): string | null{
-  if(value === 0 || isNaN(value)) return null
+export function getMessageByValue(value: number): string | null {
+  if (value === 0 || isNaN(value)) return null;
   //@ts-ignore value could be something elses
-  return messages[value]
+  return messages[value];
 }
 
-export function combineMessages(stopMessages: IrisMessage[], arrivalMessages: IrisMessage[], departureMessages: IrisMessage[]): IrisMessage[] {
-  return [...new Map([...stopMessages, ...arrivalMessages, ...departureMessages].map(item => [item["text"], item])).values()];
+export function combineMessages(
+  stopMessages: IrisMessage[],
+  arrivalMessages: IrisMessage[],
+  departureMessages: IrisMessage[]
+): IrisMessage[] {
+  return [
+    ...new Map(
+      [...stopMessages, ...arrivalMessages, ...departureMessages].map(
+        (item) => [item["text"], item]
+      )
+    ).values(),
+  ];
 }

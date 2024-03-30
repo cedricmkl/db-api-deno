@@ -73,7 +73,7 @@ export type IrisMessage = {
 };
 
 export type IrisOptions = {
-  startDate: Date;
+  startDate?: Date;
   endDate?: Date;
   includeRoute?: boolean;
   includeMessages?: boolean;

@@ -23,12 +23,10 @@ const router = new WorkerRouter()
     middleware,
     async (_, { params, searchParams }) => {
       if (isNaN(parseInt(params.eva!))) {
-        return badRequest(
-          "EVA is not a number",
-        );
+        return badRequest("EVA is not a number");
       }
       if (
-        !searchParams.get("start") ||
+        searchParams.get("start") &&
         new Date(parseInt(searchParams.get("start")!)).toString() ==
           "Invalid Date"
       ) {
@@ -36,7 +34,9 @@ const router = new WorkerRouter()
       }
 
       const result = await iris(parseInt(params.eva!), {
-        startDate: new Date(parseInt(searchParams.get("start")!)),
+        startDate: searchParams.get("start")
+          ? new Date(parseInt(searchParams.get("start")!))
+          : undefined,
         endDate: searchParams.get("end")
           ? new Date(parseInt(searchParams.get("end")!))
           : undefined,
@@ -44,7 +44,7 @@ const router = new WorkerRouter()
         includeRoute: searchParams.get("includeRoute") == "true",
       });
       return ok(JSON.stringify(result));
-    },
+    }
   )
   .any("*", () => notFound())
   .recover("*", (_, ctx) => {
