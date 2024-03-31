@@ -43,7 +43,28 @@ const router = new WorkerRouter()
         includeMessages: searchParams.get("includeMessages") == "true",
         includeRoute: searchParams.get("includeRoute") == "true",
       });
-      return ok(JSON.stringify(result));
+      return ok(
+        JSON.stringify({
+          station: result.station,
+          stops: result.stops.map((stop) => ({
+            ...stop,
+            arrival: stop.arrival
+              ? {
+                  ...stop.arrival,
+                  time: stop.arrival.time.getTime(),
+                  plannedTime: stop.arrival.plannedTime.getTime(),
+                }
+              : null,
+            departure: stop.departure
+              ? {
+                  ...stop.departure,
+                  time: stop.departure.time.getTime(),
+                  plannedTime: stop.departure.plannedTime.getTime(),
+                }
+              : null,
+          })),
+        })
+      );
     }
   )
   .any("*", () => notFound())
