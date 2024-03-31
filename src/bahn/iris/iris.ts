@@ -77,6 +77,7 @@ export async function iris(
   }
   const changes = await irisFullChanges(eva, options);
 
+  const stopIds: string[] = [];
   return {
     station: timetables[0].station,
     stops: combineStops(
@@ -87,7 +88,12 @@ export async function iris(
       .filter((s) =>
         isWithhin(getStopTime(s), options.startDate, options.endDate!)
       )
-      .sort((a, b) => getStopTime(a).getTime() - getStopTime(b).getTime()),
+      .sort((a, b) => getStopTime(a).getTime() - getStopTime(b).getTime())
+      .filter((stop) => {
+        if (stopIds.includes(stop.id)) return false;
+        stopIds.push(stop.id);
+        return true;
+      }),
   };
 }
 
